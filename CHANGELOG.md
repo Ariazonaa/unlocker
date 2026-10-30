@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 - 2026-10-30
+
+- Windows 11 context menu registration (`context-menu\register-w11-menu.ps1`) picked a random Windows SDK when several
+  are installed and failed with "makeappx.exe not found" if that was an old one. It now uses the newest SDK that
+  actually contains `makeappx.exe` and `signtool.exe`.
+
 ## 0.1.1 - 2026-10-30
 
 - Portable ZIP in English: `README.md` (with a short German section) and the folder `context-menu\` (was

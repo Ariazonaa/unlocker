@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(unlocker VERSION 0.1.1 LANGUAGES CXX)
+project(unlocker VERSION 0.1.2 LANGUAGES CXX)
 
 if(NOT MSVC)
     message(FATAL_ERROR "Unlocker benötigt MSVC (Visual Studio 2022 Build Tools oder neuer).")

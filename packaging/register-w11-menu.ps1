@@ -39,8 +39,11 @@ $BinDir = [System.IO.Path]::GetFullPath($BinDir)
 if (-not (Test-Path (Join-Path $BinDir "unlocker_shell.dll"))) { throw "unlocker_shell.dll nicht in $BinDir" }
 
 if (-not $SdkBin) {
+    # Neuestes SDK, das beide Werkzeuge wirklich hat. Nach der Versionsnummer des Elternordners sortieren – die
+    # x64-Ordner heißen alle gleich, und ältere SDK-Reste (z. B. 10.0.17134) haben oft keine makeappx.exe.
     $sdkDir = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\10.*\x64" -Directory -ErrorAction SilentlyContinue |
-        Sort-Object Name -Descending | Select-Object -First 1
+        Where-Object { (Test-Path (Join-Path $_.FullName "makeappx.exe")) -and (Test-Path (Join-Path $_.FullName "signtool.exe")) } |
+        Sort-Object { [version]$_.Parent.Name } -Descending | Select-Object -First 1
     if (-not $sdkDir) { throw "Windows SDK (makeappx/signtool) nicht gefunden – Pfad mit -SdkBin angeben." }
     $SdkBin = $sdkDir.FullName
 }

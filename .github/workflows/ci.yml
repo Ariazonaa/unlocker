@@ -1,0 +1,121 @@
+# Build x64 + ARM64, ctest and host tests, portable ZIPs as artifacts; ARM64 binaries are additionally run on a native
+# Windows on ARM runner. Tags v* create a GitHub release with the ZIPs.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # release upload on tags
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          "Runner: $env:PROCESSOR_ARCHITECTURE, $env:NUMBER_OF_PROCESSORS cores, PowerShell $($PSVersionTable.PSVersion)"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          "VS: " + ((& $vswhere -latest -products * -property installationPath) -join ", ")
+          "SDK: " + ((Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\Include" -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.Name }) -join ", ")
+
+      - name: Build x64 Release + ctest
+        run: |
+          .\build.ps1 -Config Release -Arch x64 -Test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Host tests
+        run: |
+          .\tests\host-tests.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: ARM64 toolset available?
+        id: arm64
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          $cl = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\arm64\cl.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $available = if ($cl) { "true" } else { "false" }
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "available=$available`n")
+          if ($cl) { "ARM64 compiler: $($cl.FullName)" } else { "::warning::ARM64 toolset missing on this runner – ARM64 build and ZIP skipped." }
+
+      - name: Build ARM64 Release
+        if: steps.arm64.outputs.available == 'true'
+        run: |
+          .\build.ps1 -Config Release -Arch arm64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Portable ZIPs
+        run: |
+          .\packaging\make-portable.ps1 -Arch x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ("${{ steps.arm64.outputs.available }}" -eq "true") {
+            .\packaging\make-portable.ps1 -Arch arm64
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Get-ChildItem build\portable\*.zip, build\portable\*.sha256 | ForEach-Object { "$($_.Name)  $([math]::Round($_.Length/1KB)) KB" }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unlocker-portable
+          path: |
+            build/portable/*.zip
+            build/portable/*.sha256
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        if: steps.arm64.outputs.available == 'true'
+        with:
+          name: arm64-bin
+          path: build/arm64-release/bin/*.exe
+          if-no-files-found: error
+
+      - name: Release (tags v* only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = Get-ChildItem build\portable\*.zip, build\portable\*.sha256 | ForEach-Object FullName
+          gh release create $env:GITHUB_REF_NAME @files --title $env:GITHUB_REF_NAME --generate-notes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  # Native ARM64 run: the cross-compiled binaries on real Windows on ARM hardware.
+  arm64-run:
+    needs: build
+    runs-on: windows-11-arm
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: arm64-bin
+          path: bin
+
+      - name: Architecture
+        run: |
+          "Runner: $env:PROCESSOR_ARCHITECTURE"
+          Get-ChildItem bin\*.exe | ForEach-Object { "$($_.Name)  $([math]::Round($_.Length/1KB)) KB" }
+
+      - name: core_tests (ARM64)
+        run: |
+          .\bin\core_tests.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: unlockerc smoke test (ARM64)
+        run: |
+          $f = Join-Path $env:RUNNER_TEMP "locked.txt"; Set-Content $f "x"
+          $s = [System.IO.File]::Open($f, 'Open', 'ReadWrite', 'None')
+          .\bin\unlockerc.exe --json $f | Tee-Object -Variable out
+          $code = $LASTEXITCODE; $s.Dispose()
+          if ($code -ne 1) { "expected exit 1 (lock found), got $code"; exit 1 }
+          .\bin\unlockerc.exe $f
+          if ($LASTEXITCODE -ne 0) { "expected exit 0 after release, got $LASTEXITCODE"; exit 1 }

@@ -1,0 +1,19 @@
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 120
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortCaseLabelsOnASingleLine: true
+DerivePointerAlignment: false
+PointerAlignment: Left
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"unlocker/'
+    Priority: 2
+  - Regex: '^<(windows|winternl|commctrl|dwmapi|uxtheme|shellapi|shobjidl|shlwapi|psapi|restartmanager|vssym32|windowsx|objbase|wrl)'
+    Priority: 3
+  - Regex: '^<'
+    Priority: 4
+  - Regex: '.*'
+    Priority: 1

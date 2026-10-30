@@ -1,0 +1,4 @@
+LIBRARY unlocker_shell
+EXPORTS
+    DllGetClassObject PRIVATE
+    DllCanUnloadNow   PRIVATE

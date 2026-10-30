@@ -1,0 +1,16 @@
+# Zeilenenden im Repo normalisiert (LF), Auschecken nach Plattform
+* text=auto
+
+*.ps1 text eol=crlf
+*.rc  text
+*.def text
+*.manifest text
+*.xml text
+*.json text
+*.md text
+
+*.ico binary
+*.png binary
+*.pfx binary
+*.cer binary
+*.msix binary

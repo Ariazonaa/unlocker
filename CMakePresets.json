@@ -1,0 +1,54 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "architecture": { "value": "x64", "strategy": "external" },
+      "toolset": { "value": "host=x64", "strategy": "external" },
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+    },
+    {
+      "name": "x64-debug",
+      "displayName": "x64 Debug",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "x64-release",
+      "displayName": "x64 Release",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "x64-driver",
+      "displayName": "x64 Release + Kernel-Treiber (braucht WDK, eigener Build-Ordner)",
+      "inherits": "x64-release",
+      "cacheVariables": { "UNLOCKER_BUILD_DRIVER": "ON" }
+    },
+    {
+      "name": "arm64-release",
+      "displayName": "ARM64 Release (Cross-Compile, VsDevCmd -arch=arm64)",
+      "inherits": "base",
+      "architecture": { "value": "arm64", "strategy": "external" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "CMAKE_SYSTEM_PROCESSOR": "ARM64" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "x64-debug", "configurePreset": "x64-debug" },
+    { "name": "x64-release", "configurePreset": "x64-release" },
+    { "name": "x64-driver", "configurePreset": "x64-driver" },
+    { "name": "arm64-release", "configurePreset": "arm64-release" }
+  ],
+  "testPresets": [
+    { "name": "x64-debug", "configurePreset": "x64-debug", "output": { "outputOnFailure": true } },
+    { "name": "x64-release", "configurePreset": "x64-release", "output": { "outputOnFailure": true } }
+  ]
+}

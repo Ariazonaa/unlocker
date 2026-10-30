@@ -73,8 +73,9 @@ std::wstring registered_full_name() {
 
 std::filesystem::path package_file() {
     const auto exe_dir = exe_directory();
+    // "kontextmenu" ist der Ordnername im Portable-ZIP von 0.1.0
     for (const auto& candidate : {settings::file().parent_path() / kPackageFile, exe_dir / kPackageFile,
-                                  exe_dir / L"kontextmenu" / kPackageFile}) {
+                                  exe_dir / L"context-menu" / kPackageFile, exe_dir / L"kontextmenu" / kPackageFile}) {
         std::error_code ec;
         if (std::filesystem::is_regular_file(candidate, ec)) return candidate;
     }

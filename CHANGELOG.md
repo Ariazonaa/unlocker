@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 - 2026-10-30
+
+- Portable ZIP in English: `README.md` (with a short German section) and the folder `context-menu\` (was
+  `kontextmenu\`; the app still finds a context menu package registered from the old folder).
+- Context menu entry follows the Windows display language: "Unlock with Unlocker" / "Mit Unlocker entsperren"
+  (new Windows 11 menu and classic menu); package manifest texts in English.
+
 ## 0.1.0 - 2026-10-30
 
 First public version.

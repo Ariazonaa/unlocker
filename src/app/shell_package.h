@@ -15,7 +15,7 @@ bool supported();
 // PackageFullName des registrierten Pakets für den aktuellen Benutzer; leer = nicht registriert.
 std::wstring registered_full_name();
 
-// unlocker-sparse.msix (neben settings.json, neben der EXE oder in kontextmenu\ daneben); leer = nicht vorhanden.
+// unlocker-sparse.msix (neben settings.json, neben der EXE oder in context-menu\ (0.1.0: kontextmenu\) daneben); leer = nicht vorhanden.
 std::filesystem::path package_file();
 
 struct Outcome {

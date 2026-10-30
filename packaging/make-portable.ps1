@@ -56,7 +56,7 @@ $name = "Unlocker-$version-$Arch-portable"
 $stageRoot = Join-Path $OutDir $name
 $stage = Join-Path $stageRoot "Unlocker"
 Remove-Item -Recurse -Force $stageRoot -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path (Join-Path $stage "kontextmenu\Assets") | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $stage "context-menu\Assets") | Out-Null
 
 foreach ($b in $binaries) { Copy-Item (Join-Path $BinDir $b) $stage }
 
@@ -78,13 +78,13 @@ else { Write-Warning "LICENSE fehlt im Repo - das ZIP enthält keine Lizenz." }
 ) | Set-Content (Join-Path $stage "portable.ini") -Encoding ASCII
 
 # Kontextmenü: Skripte, Manifest (Architektur anpassen), Logos
-Copy-Item (Join-Path $PSScriptRoot "register-classic-menu.ps1") (Join-Path $stage "kontextmenu")
-Copy-Item (Join-Path $PSScriptRoot "register-w11-menu.ps1") (Join-Path $stage "kontextmenu")
+Copy-Item (Join-Path $PSScriptRoot "register-classic-menu.ps1") (Join-Path $stage "context-menu")
+Copy-Item (Join-Path $PSScriptRoot "register-w11-menu.ps1") (Join-Path $stage "context-menu")
 $manifest = Get-Content (Join-Path $PSScriptRoot "AppxManifest.xml") -Raw -Encoding UTF8
 $manifest = $manifest -replace 'ProcessorArchitecture="[^"]+"', "ProcessorArchitecture=`"$Arch`""
 if ($manifest -notmatch "Version=`"$([regex]::Escape($version))\.0`"") { Write-Warning "AppxManifest.xml hat eine andere Version als $version.0" }
-[System.IO.File]::WriteAllText((Join-Path $stage "kontextmenu\AppxManifest.xml"), $manifest, (New-Object System.Text.UTF8Encoding $false))
-Copy-Item (Join-Path $PSScriptRoot "Assets\*.png") (Join-Path $stage "kontextmenu\Assets")
+[System.IO.File]::WriteAllText((Join-Path $stage "context-menu\AppxManifest.xml"), $manifest, (New-Object System.Text.UTF8Encoding $false))
+Copy-Item (Join-Path $PSScriptRoot "Assets\*.png") (Join-Path $stage "context-menu\Assets")
 
 # Prüfsummen über alles (relative Pfade mit /)
 $sums = Get-ChildItem $stage -Recurse -File | Sort-Object FullName | ForEach-Object {

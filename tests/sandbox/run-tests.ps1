@@ -1828,7 +1828,7 @@ $Sections["portable"] = {
     Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
     [System.IO.Compression.ZipFile]::ExtractToDirectory($zip.FullName, $dest)
     $dir = "$dest\Unlocker"
-    Check "ZIP: Wurzelordner Unlocker\ mit allen Dateien" ((Test-Path "$dir\unlocker.exe") -and (Test-Path "$dir\unlockerc.exe") -and (Test-Path "$dir\unlocker_shell.dll") -and (Test-Path "$dir\README.md") -and (Test-Path "$dir\portable.ini") -and (Test-Path "$dir\kontextmenu\register-w11-menu.ps1") -and (Test-Path "$dir\kontextmenu\AppxManifest.xml"))
+    Check "ZIP: Wurzelordner Unlocker\ mit allen Dateien" ((Test-Path "$dir\unlocker.exe") -and (Test-Path "$dir\unlockerc.exe") -and (Test-Path "$dir\unlocker_shell.dll") -and (Test-Path "$dir\README.md") -and (Test-Path "$dir\portable.ini") -and (Test-Path "$dir\context-menu\register-w11-menu.ps1") -and (Test-Path "$dir\context-menu\AppxManifest.xml"))
     $sha = [System.Security.Cryptography.SHA256]::Create()
     $bad = @()
     foreach ($line in Get-Content "$dir\SHA256SUMS.txt") {
@@ -1867,12 +1867,12 @@ $Sections["portable"] = {
     # Kontextmenü-Skripte ohne Parameter aus dem ZIP-Layout
     $help = & "$dir\unlockerc.exe" --help 2>&1
     Check "ZIP: unlockerc --help mit Version" (($help -join "`n") -match "unlockerc $([regex]::Escape($ver.FileVersion))")
-    & powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\kontextmenu\register-classic-menu.ps1" 2>&1 | ForEach-Object { Log "  $_" }
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\context-menu\register-classic-menu.ps1" 2>&1 | ForEach-Object { Log "  $_" }
     $cmdVal = (Get-ItemProperty -LiteralPath "HKCU:\Software\Classes\*\shell\Unlocker\command" -ErrorAction SilentlyContinue)."(default)"
     Check "ZIP: klassisches Menü findet unlocker.exe eine Ebene höher" ($cmdVal -eq "`"$dir\unlocker.exe`" `"%1`"") "($cmdVal)"
-    & powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\kontextmenu\register-classic-menu.ps1" -Remove 2>&1 | Out-Null
+    & powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\context-menu\register-classic-menu.ps1" -Remove 2>&1 | Out-Null
     if (Test-Path "C:\SDK\makeappx.exe") {
-        & powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\kontextmenu\register-w11-menu.ps1" -SdkBin "C:\SDK" -TrustCert 2>&1 | ForEach-Object { Log "  $_" }
+        & powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\context-menu\register-w11-menu.ps1" -SdkBin "C:\SDK" -TrustCert 2>&1 | ForEach-Object { Log "  $_" }
         $pkg = Get-AppxPackage -Name "Unlocker.App" -ErrorAction SilentlyContinue
         Check "ZIP: Sparse Package aus dem ZIP-Layout registriert" ($null -ne $pkg)
         if ($pkg) {
@@ -1884,7 +1884,7 @@ $Sections["portable"] = {
             } catch { Log "  EffectiveExternalPath nicht lesbar: $_" }
             Check "ZIP: externer Speicherort = entpackter Ordner" ($ext -ieq $dir) "($ext)"
         }
-        & powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\kontextmenu\register-w11-menu.ps1" -Remove 2>&1 | Out-Null
+        & powershell -NoProfile -ExecutionPolicy Bypass -File "$dir\context-menu\register-w11-menu.ps1" -Remove 2>&1 | Out-Null
     } else { Log "  SKIP  C:\SDK fehlt - Sparse Package aus dem ZIP nicht geprüft" }
     Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
 }

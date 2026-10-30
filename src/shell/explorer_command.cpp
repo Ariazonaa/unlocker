@@ -1,4 +1,4 @@
-// Kontextmenü-Eintrag "Mit Unlocker entsperren" (IExplorerCommand).
+// Kontextmenü-Eintrag "Mit Unlocker entsperren" / "Unlock with Unlocker" (IExplorerCommand).
 // Wird im neuen Windows-11-Menü über das Sparse Package (packaging/AppxManifest.xml) registriert,
 // im klassischen Menü über packaging/register-classic-menu.ps1. Die DLL übergibt nur die Pfade
 // an unlocker.exe und bleibt ansonsten passiv.
@@ -36,6 +36,15 @@ std::wstring module_directory() {
     return pos == std::wstring::npos ? std::wstring() : path.substr(0, pos);
 }
 
+// Gleiche Sprachwahl wie die App (src/common/strings.cpp), ohne die Tabelle in die DLL zu ziehen
+bool is_german() {
+    wchar_t override_lang[8]{};
+    if (GetEnvironmentVariableW(L"UNLOCKER_LANG", override_lang, 8) > 0) {
+        return override_lang[0] == L'd' || override_lang[0] == L'D';
+    }
+    return PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_GERMAN;
+}
+
 }  // namespace
 
 class __declspec(uuid("CAD0BA06-5865-421D-8C66-5D339B9E8A62")) UnlockCommand final
@@ -43,7 +52,7 @@ class __declspec(uuid("CAD0BA06-5865-421D-8C66-5D339B9E8A62")) UnlockCommand fin
 public:
     // IExplorerCommand
     IFACEMETHODIMP GetTitle(IShellItemArray*, LPWSTR* name) override {
-        return SHStrDupW(L"Mit Unlocker entsperren", name);
+        return SHStrDupW(is_german() ? L"Mit Unlocker entsperren" : L"Unlock with Unlocker", name);
     }
     IFACEMETHODIMP GetIcon(IShellItemArray*, LPWSTR* icon) override {
         return SHStrDupW((module_directory() + L"\\unlocker.exe,0").c_str(), icon);

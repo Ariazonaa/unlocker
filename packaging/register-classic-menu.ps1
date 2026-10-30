@@ -36,9 +36,11 @@ if (-not $ExePath) {
 $ExePath = [System.IO.Path]::GetFullPath($ExePath)
 if (-not (Test-Path -LiteralPath $ExePath)) { throw "unlocker.exe nicht gefunden: $ExePath" }
 
+# Menütext in der Windows-Anzeigesprache (wie App und Shell-DLL: Deutsch oder sonst Englisch)
+$title = if ((Get-UICulture).TwoLetterISOLanguageName -eq "de") { "Mit Unlocker entsperren" } else { "Unlock with Unlocker" }
 foreach ($key in $keys) {
     if (-not (Test-Path -LiteralPath "$key\command")) { New-Item -Path "$key\command" -Force | Out-Null }
-    Set-ItemProperty -LiteralPath $key -Name "(default)" -Value "Mit Unlocker entsperren"
+    Set-ItemProperty -LiteralPath $key -Name "(default)" -Value $title
     Set-ItemProperty -LiteralPath $key -Name "Icon" -Value "`"$ExePath`",0"
     Set-ItemProperty -LiteralPath $key -Name "MultiSelectModel" -Value "Player"
     Set-ItemProperty -LiteralPath "$key\command" -Name "(default)" -Value "`"$ExePath`" `"%1`""

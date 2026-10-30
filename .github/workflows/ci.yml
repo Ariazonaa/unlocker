@@ -83,8 +83,22 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Release notes: the CHANGELOG section of this version plus a note on the missing code signature
+          $ver = $env:GITHUB_REF_NAME.TrimStart("v")
+          $lines = @(Get-Content CHANGELOG.md -Encoding UTF8)
+          $start = (@($lines | Select-String -Pattern ("^## " + [regex]::Escape($ver) + "\b")) | Select-Object -First 1).LineNumber
+          $body = @("See CHANGELOG.md.")
+          if ($start) {
+            $body = @($lines[$start..($lines.Count - 1)])
+            $end = (@($body | Select-String -Pattern "^## ") | Select-Object -First 1).LineNumber
+            if ($end) { $body = @($body[0..($end - 2)]) }
+          }
+          $body += ""
+          $body += "> **Note:** the binaries are not code-signed yet, so Windows SmartScreen may warn on first start. Verify downloads with the attached ``.sha256`` files."
+          $notes = Join-Path $env:RUNNER_TEMP "release-notes.md"
+          [System.IO.File]::WriteAllLines($notes, [string[]]$body, (New-Object System.Text.UTF8Encoding($false)))
           $files = Get-ChildItem build\portable\*.zip, build\portable\*.sha256 | ForEach-Object FullName
-          gh release create $env:GITHUB_REF_NAME @files --title $env:GITHUB_REF_NAME --generate-notes
+          gh release create $env:GITHUB_REF_NAME @files --title "Unlocker $ver" --notes-file $notes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   # Native ARM64 run: the cross-compiled binaries on real Windows on ARM hardware.

@@ -2101,6 +2101,76 @@ $Sections["praxis-apps"] = {
     Check "Word-Dokument in LibreOffice: Sperrdatei .~lock.bericht.docx# mit gelöscht" (-not (Test-Path -LiteralPath $lock))
 }
 
+# Screenshots für das README (nur auf Abruf: -Only readme-shots). Englische Oberfläche, neutraler Beispielordner, nur
+# das Fenster (PrintWindow) – kein Desktop, keine Kontonamen. Ergebnis: $Out\readme-*.png
+$Timeouts["readme-shots"] = 240
+$Sections["readme-shots"] = {
+    Add-Type @"
+using System; using System.Runtime.InteropServices;
+public static class Shot {
+    [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
+    [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+    [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L, T, R, B; }
+}
+"@
+    function Save-Window($hwnd, $name) {
+        $r = New-Object Shot+RECT; [Shot]::GetWindowRect($hwnd, [ref]$r) | Out-Null
+        $bmp = New-Object System.Drawing.Bitmap ($r.R - $r.L), ($r.B - $r.T)
+        $g = [System.Drawing.Graphics]::FromImage($bmp); $hdc = $g.GetHdc()
+        [Shot]::PrintWindow($hwnd, $hdc, 2) | Out-Null
+        $g.ReleaseHdc($hdc); $g.Dispose(); $bmp.Save("$Out\$name.png", [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
+        Log "  screenshot $name.png ($($r.R - $r.L)x$($r.B - $r.T))"
+    }
+
+    $dir = "C:\Projects\Quarterly Report"
+    New-Item -ItemType Directory -Force -Path "$dir\assets" | Out-Null
+    Set-Content "$dir\notes.txt" "Q3 numbers"; Set-Content "$dir\report.docx" "draft"; Set-Content "$dir\assets\chart.png" "x"
+    # Audio für VLC (10 s Ton)
+    $wav = "$dir\assets\jingle.wav"; $rate = 8000; $samples = $rate * 10
+    $bw = New-Object IO.BinaryWriter([IO.File]::Create($wav))
+    $bw.Write([Text.Encoding]::ASCII.GetBytes("RIFF")); $bw.Write([int](36 + $samples * 2)); $bw.Write([Text.Encoding]::ASCII.GetBytes("WAVEfmt "))
+    $bw.Write([int]16); $bw.Write([int16]1); $bw.Write([int16]1); $bw.Write([int]$rate); $bw.Write([int]($rate * 2)); $bw.Write([int16]2); $bw.Write([int16]16)
+    $bw.Write([Text.Encoding]::ASCII.GetBytes("data")); $bw.Write([int]($samples * 2))
+    for ($i = 0; $i -lt $samples; $i++) { $bw.Write([int16](2000 * [Math]::Sin(2 * [Math]::PI * 440 * $i / $rate))) }
+    $bw.Dispose()
+
+    # Sperren: Skript hält das Dokument, Eingabeaufforderung mit Arbeitsverzeichnis im Ordner, Explorer-Fenster, VLC
+    $h1 = Start-Holder "$dir\report.docx"
+    $cmd = Start-Process cmd.exe -ArgumentList "/k" -WorkingDirectory $dir -WindowStyle Minimized -PassThru
+    Start-Process explorer.exe -ArgumentList "`"$dir`""
+    $vlcZip = Get-ChildItem "C:\Apps\vlc-*.zip" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($vlcZip) {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $vlcDir = "$Work\vlc"; if (-not (Test-Path $vlcDir)) { [IO.Compression.ZipFile]::ExtractToDirectory($vlcZip.FullName, $vlcDir) }
+        $vlc = Get-ChildItem $vlcDir -Recurse -Filter vlc.exe | Select-Object -First 1 -ExpandProperty FullName
+        Start-Process $vlc -ArgumentList "--no-qt-privacy-ask", "--no-qt-updates-notif", "--qt-start-minimized", "--loop", "`"$wav`""
+    } else { Log "  INFO  VLC fehlt (fetch-apps.ps1) – Bild ohne Player" }
+    Start-Sleep 6
+
+    $env:UNLOCKER_LANG = "en"
+    $gui = Start-Gui $dir
+    Remove-Item Env:UNLOCKER_LANG
+    if ($gui.Hwnd -eq [IntPtr]::Zero) { Check "README: GUI gestartet" $false; return }
+    $n = Get-RowCount $gui.Hwnd
+    Check "README: Sperren gelistet" ($n -ge 3) "($n Zeilen)"
+    [Native]::PostMessageW($gui.Hwnd, 0x0111, [IntPtr]2015, [IntPtr]::Zero) | Out-Null   # alle Gruppen ausklappen
+    Start-Sleep 2
+    Save-Window $gui.Hwnd "readme-main"
+
+    # Bestätigung vor dem Löschen (listet, was vorher entsperrt wird)
+    [Native]::PostMessageW($gui.Hwnd, 0x0111, [IntPtr]1005, [IntPtr]::Zero) | Out-Null   # IDC_DELETE
+    $dlg = Find-Dialog $gui.Proc.Id 5
+    if ($dlg -ne [IntPtr]::Zero) {
+        Start-Sleep -Milliseconds 700
+        Save-Window $dlg "readme-confirm"
+        $cancel = Find-Button $dlg "Cancel"; if ($cancel -ne [IntPtr]::Zero) { Click-Button $cancel }
+    } else { Log "  INFO  Bestätigungsdialog nicht gefunden" }
+    Check "README: Ordner unverändert" (Test-Path "$dir\report.docx")
+    Stop-Process -Id $gui.Proc.Id -Force -ErrorAction SilentlyContinue
+    Stop-Process -Id $cmd.Id -Force -ErrorAction SilentlyContinue
+    Get-Process vlc -ErrorAction SilentlyContinue | Stop-Process -Force
+}
+
 # ============================================================================================
 # Kindprozess: genau einen Abschnitt ausführen
 # ============================================================================================
@@ -2134,8 +2204,10 @@ Log ("  Groessen: " + ((Get-ChildItem "$Bin\*.exe", "$Bin\*.dll" | ForEach-Objec
 
 $total = [Diagnostics.Stopwatch]::StartNew()
 $Only = @($Only | ForEach-Object { $_ -split "," } | Where-Object { $_ })
+$OnDemand = @("readme-shots")   # laufen nur, wenn ausdrücklich per -Only gewählt
 foreach ($name in $Sections.Keys) {
     if ($Only.Count -gt 0 -and $Only -notcontains $name) { continue }
+    if ($Only.Count -eq 0 -and $OnDemand -contains $name) { continue }
     $timeout = if ($Timeouts.ContainsKey($name)) { $Timeouts[$name] } else { 180 }
     Log ""
     Log "=== $name (Timeout $timeout s) ==="

@@ -13,6 +13,12 @@ Unlocker: one portable EXE, no installer required, no background service, no bun
 - GUI (dark, Fluent style), Explorer context menu, and a command line tool with text/table/CSV/JSON output.
 - German and English UI (follows the Windows display language).
 
+![Unlocker main window: a folder locked by Explorer, a script, a command prompt (working directory) and a media player](docs/screenshot-main.png)
+
+Before deleting, Unlocker shows which programs it will release first:
+
+![Confirmation before deleting: locks will be released first in explorer.exe, powershell.exe, cmd.exe and vlc.exe](docs/screenshot-confirm.png)
+
 ## Build
 
 Requirements: Visual Studio 2022 Build Tools (MSVC v143, Windows SDK 10.0.22621+), CMake ≥ 3.25, Ninja (both ship with

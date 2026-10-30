@@ -45,7 +45,7 @@ jobs:
           $cl = Get-ChildItem "$vs\VC\Tools\MSVC\*\bin\Hostx64\arm64\cl.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
           $available = if ($cl) { "true" } else { "false" }
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "available=$available`n")
-          if ($cl) { "ARM64 compiler: $($cl.FullName)" } else { "::warning::ARM64 toolset missing on this runner – ARM64 build and ZIP skipped." }
+          if ($cl) { "ARM64 compiler: $($cl.FullName)" } else { "::warning::ARM64 toolset missing on this runner - ARM64 build and ZIP skipped." }
 
       - name: Build ARM64 Release
         if: steps.arm64.outputs.available == 'true'

@@ -44,6 +44,7 @@ Working notes for AI coding sessions (and humans) in this repository. Usage: `RE
 | `tests\sandbox\run-sandbox.ps1` | full suite in Windows Sandbox | `wsb` CLI (Win11 24H2+), admin, interactive desktop |
 
 - Only one sandbox at a time (`CO_E_APPSINGLEUSE`): find the old one with `wsb list`, `wsb stop --id …`.
+- On demand only (`-Only readme-shots`): screenshots for `docs\` (English UI, neutral example folder).
 - Results: `build\sandbox-share\out\results.log` + screenshots; select sections with `-Only gui-dpi,kern-unc`. The share
   is **deleted** before every run.
 - `praxis-apps` uses portable apps fetched once by `tests\sandbox\fetch-apps.ps1` (official sources, pinned SHA-256);
@@ -91,4 +92,5 @@ Working notes for AI coding sessions (and humans) in this repository. Usage: `RE
 - In the sandbox `SeDebugPrivilege` is already **enabled** – tests that need "access denied" disable it first.
 - Windows 11 24H2 writes `PendingFileRenameOperations` with a `*1\??\` prefix → match on the suffix.
 - `*` in registry paths is a key name → always `-LiteralPath`.
+- GitHub Actions steps run under Windows PowerShell 5.1 from a BOM-less temp file → keep workflow scripts **ASCII only**.
 - Git: LF in the repo, CRLF on checkout (`.gitattributes`).
